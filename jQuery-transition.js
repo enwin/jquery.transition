@@ -33,42 +33,62 @@
   window.Modernizr.transEndEventName = transEndEventNames[window.Modernizr.prefixed('transition')];
 
   jQuery.fn.extend({
-    transition: function(o,speed,callback){
-      var lastElmt = this.last();
+    transition: function(o,speed,easing,callback,delay){
+      var lastElmt = this.last(),
+        opt = speed && typeof speed === "object" ? jQuery.extend( {}, speed ) : {
+          complete: delay && callback || !delay && jQuery.isFunction( callback) && callback || easing && jQuery.isFunction( easing ) && easing ||
+            jQuery.isFunction( speed ) && speed,
+          duration: speed+"ms",
+          easing: callback && easing || easing && !jQuery.isFunction( easing ) && !jQuery.isNumeric( easing ) && easing || "ease-in-out",
+          delay: (delay || !delay && !jQuery.isFunction( callback ) && callback || !delay && !callback && !jQuery.isFunction ( easing ) && easing || "0") +"ms"
+        };
+
       if(Modernizr.csstransitions){
         this.each(function(i,el){
           var that = jQuery(this),
             iStyles = 0;
             iObject = 0;
+            props = [],
+            transition = " "+opt.duration + " " + opt.easing + " " + opt.delay;
+
+
           for(i in o){
             iObject++
+            if(!Modernizr.testProp(i)){
+              i = Modernizr.prefixed(i).replace(/([A-Z])/g,function(str,m1){
+                return '-'+m1.toLowerCase();
+              }).replace(/^ms-/,'-ms-');
+            }
+            props.push(i+transition);
             if(that.css(i) == o[i]){
               iStyles++
             }
           }
           if(iObject> iStyles){
-            window.requestAnimationFrame(function(){
-              that[0].style[Modernizr.prefixed('transition')] = "all "+speed+"ms ease-in-out";
-              that.one(Modernizr.transEndEventName,function(e){
-                e.currentTarget.style[Modernizr.prefixed('transition')] = "";
-                if(!!callback && lastElmt.is(that)){
-                  callback();
-                }
-              })
+            (function(props){
               window.requestAnimationFrame(function(){
-                that.css(o);
-              })
-            });
+                that[0].style[Modernizr.prefixed('transition')] = props.join();
+                that.one(Modernizr.transEndEventName,function(e){
+                  e.currentTarget.style[Modernizr.prefixed('transition')] = "";
+                  if(!!opt.complete && lastElmt.is(that)){
+                    opt.complete();
+                  }
+                })
+                window.requestAnimationFrame(function(){
+                  that.css(o);
+                })
+              });
+            })(props)
           }else{
-            if(!!callback){
-              callback();
+            if(!!opt.complete){
+              opt.complete();
             }
           }
         });
       }else{
-        this.animate(o,speed,function(){
-          if(!!callback && lastElmt.is(this)){
-            callback();
+        this.delay(opt.delay).animate(o,opt.duration,function(){
+          if(!!opt.complete && lastElmt.is(this)){
+            opt.complete();
           }
         });
       }
