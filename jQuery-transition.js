@@ -54,11 +54,11 @@
 
           for(i in o){
             iObject++
-            if(!Modernizr.testProp(i)){
-              i = Modernizr.prefixed(i).replace(/([A-Z])/g,function(str,m1){
-                return '-'+m1.toLowerCase();
-              }).replace(/^ms-/,'-ms-');
-            }
+
+            i = Modernizr.prefixed(i).replace(/([A-Z])/g,function(str,m1){ // transform string to lowercase & - css property
+              return '-'+m1.toLowerCase();
+            }).replace(/^ms-/,'-ms-');
+
             props.push(i+transition);
             if(that.css(i) == o[i]){
               iStyles++
